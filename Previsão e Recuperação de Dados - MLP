@@ -85,7 +85,7 @@ for lr in learning_rates:
             mae_list.append(mae)
             rmse_list.append(rmse)
 
-            # Armazene as previsões do melhor modelo:
+            # Armazene as informações do melhor modelo:
             if mse < best_mse:
                 best_mse = mse
                 best_mae = mae
