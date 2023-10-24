@@ -22,7 +22,7 @@ X = imputer.fit_transform(X)
 scaler = StandardScaler()
 X = scaler.fit_transform(X)
 
-# Define a função para treinamento e avaliação MLP com treinamento detalhado:
+# Define a função para treinamento e avaliação MLP com treinamento detalhado e número de camadas ocultas, neurônios por camadas ocultas e de saída:
 def train_mlp(X_train, y_train, X_test, y_test, learning_rate, max_iter):
     mlp = MLPRegressor(hidden_layer_sizes=(32, 64, 1), max_iter=max_iter, learning_rate_init=learning_rate, verbose=False)
     mlp.fit(X_train, y_train)
