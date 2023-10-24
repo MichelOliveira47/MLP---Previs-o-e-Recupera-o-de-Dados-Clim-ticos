@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
 # Carregue os dados do arquivo Excel:
-file_name = "/2011 a 2020 - Mês de Setembro - RAD.xlsx"
+file_name = "2011 a 2020 - Mês de Setembro - RS - Barra do Chuí.xlsx"
 df = pd.read_excel(file_name)
 
 X = df.iloc[:, :17].values
