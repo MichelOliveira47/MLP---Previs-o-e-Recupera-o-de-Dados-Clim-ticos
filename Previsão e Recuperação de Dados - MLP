@@ -1,0 +1,115 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import KFold
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.neural_network import MLPRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+# Carregue os dados do arquivo Excel:
+file_name = "/2011 a 2020 - Mês de Setembro - RAD.xlsx"
+df = pd.read_excel(file_name)
+
+X = df.iloc[:, :17].values
+y = df.iloc[:, -1].values
+
+# Lida com valores ausentes substituindo os valores NaN pela média das respectivas colunas
+imputer = SimpleImputer(strategy="mean")
+X = imputer.fit_transform(X)
+
+# Normalize os dados do recurso usando StandardScaler:
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+# Define a função para treinamento e avaliação MLP com treinamento detalhado:
+def train_mlp(X_train, y_train, X_test, y_test, learning_rate, max_iter):
+    mlp = MLPRegressor(hidden_layer_sizes=(1024, 1), max_iter=max_iter, learning_rate_init=learning_rate, verbose=False)
+    mlp.fit(X_train, y_train)
+
+    # Métricas de erro:
+    mse_values = []
+    mae_values = []
+    rmse_values = []
+
+    for epoch in range(max_iter):
+        mlp.partial_fit(X_train, y_train)  # Perform partial fit for each epoch
+        y_pred = mlp.predict(X_test)
+
+        mse = mean_squared_error(y_test, y_pred)
+        mae = mean_absolute_error(y_test, y_pred)
+        rmse = np.sqrt(mse)
+
+        mse_values.append(mse)
+        mae_values.append(mae)
+        rmse_values.append(rmse)
+
+        print(f"Épocas {epoch + 1} - Taxa de Aprendizagem: {mlp.learning_rate_init:.6f} - MSE: {mse:.6f} - MAE: {mae:.6f} - RMSE: {rmse:.6f}")
+
+    y_pred = mlp.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
+
+    return mse, mae, rmse, y_pred, mse_values, mae_values, rmse_values, mlp
+
+# Executar validação cruzada K-Pastas
+K = 10
+kf = KFold(n_splits=K, shuffle=True, random_state=42)
+
+best_model = None
+best_mse = float("inf")
+best_mae = None
+best_rmse = None
+best_mlp = None  # Store the best MLP model
+best_mse_values = None  # Store MSE values for the best model
+best_mae_values = None  # Store MAE values for the best model
+best_rmse_values = None  # Store RMSE values for the best model
+
+# Taxas de aprendizados para diversas épocas de treinamento:
+learning_rates = [0.05, 0.01, 0.001]
+max_iters = [500, 1000, 2000]
+
+for lr in learning_rates:
+    for max_iter in max_iters:
+        mse_list = []
+        mae_list = []
+        rmse_list = []
+
+        for train_index, test_index in kf.split(X):
+            X_train, X_test = X[train_index], X[test_index]
+            y_train, y_test = y[train_index], y[test_index]
+
+            mse, mae, rmse, y_pred, mse_values, mae_values, rmse_values, mlp = train_mlp(X_train, y_train, X_test, y_test, lr, max_iter)
+            mse_list.append(mse)
+            mae_list.append(mae)
+            rmse_list.append(rmse)
+
+            # Armazene as previsões do melhor modelo:
+            if mse < best_mse:
+                best_mse = mse
+                best_mae = mae
+                best_rmse = rmse
+                best_model = (lr, max_iter)
+                best_mlp = mlp
+                best_mse_values = mse_values
+                best_mae_values = mae_values
+                best_rmse_values = rmse_values
+
+# Exibe os hiperparâmetros do melhor modelo, MSE, MAE e RMSE:
+print("Melhor Modelo - Taxa de Aprendizagem e número Máximo de Épocas:", best_model)
+print("Melhor Modelo - MSE:", best_mse)
+print("Melhor Modelo - MAE:", np.mean(best_mae))
+print("Melhor Modelo - RMSE:", np.mean(best_rmse))
+
+# Gráfico do MSE, MAE e RMSE vs. Épocas para o melhor modelo:
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, len(best_mse_values) + 1), best_mse_values, color='green', linestyle='-', label='MSE')
+plt.plot(range(1, len(best_mae_values) + 1), best_mae_values, color='blue', linestyle='-', label='MAE')
+plt.plot(range(1, len(best_rmse_values) + 1), best_rmse_values, color='red', linestyle='-', label='RMSE')
+plt.title("Métricas de Erro x Épocas de Treinamento do Melhor Modelo")
+plt.xlabel("Épocas de Treinamento")
+plt.ylabel("Métricas de Erro")
+plt.legend()
+plt.grid()
+plt.show()
